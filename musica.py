@@ -75,6 +75,8 @@ def load_dataset(c, spark, genres):
     # Generar un arreglo vacio para almacenar toda la data
     data = []
     # Recorrer todas las canciones de la tabla songs
+    # (Se realizo una prueba con solo 10 registros)
+    # for song in songs[:10]:
     for song in songs:
         # Generar un arreglo vacio para almacenar la data referente a una sola cancion
         row = []
@@ -90,7 +92,7 @@ def load_dataset(c, spark, genres):
             ).fetchone()
             # Si la consulta no devuelve nada, se asigna el valor 0
             if not count:
-                row.append(0)
+                row.append(float(0))
             # De lo contrario, se asigna el valor tf_idf para esta caracteristica
             else:
                 row.append(tfidf(c, count[0], n, headers[i]))

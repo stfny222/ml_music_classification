@@ -31,9 +31,15 @@ def run(data, headers_feature):
     train_data, test_data = prepare_dataset(data, headers_feature)
     train_data.show()
 
-    # Configurar la regresion logistica multinomial
+    # Especificar las capas para la red neuronal:
+    # input de 5000 (features),
+    # 5 capas intermedias de 50 neuronas
+    # y output de 101 (clases)
+    layers = [5000, 50, 50, 50, 50, 50, 101]
+
+    # Configurar la el clasificador perceptron multicapa
     mlpc = MultilayerPerceptronClassifier(
-        maxIter=100, layers=[4, 5, 4, 3], blockSize=128, seed=1234
+        maxIter=100, layers=layers, blockSize=128, seed=1234
     )
 
     # Obtener el modelo de clasificacion
@@ -44,9 +50,10 @@ def run(data, headers_feature):
 
     data_to_validate = mlpc_model.transform(test_data)
 
+    # Validar la precision de la prediccion de la data de prueba
     prediction = data_to_validate.select("prediction", "label")
     evaluator = MulticlassClassificationEvaluator(metricName="accuracy")
-    print("Test set accuracy = " + str(evaluator.evaluate(prediction)))
+    print("Precision de la prueba = " + str(evaluator.evaluate(prediction)))
 
     end_time = datetime.datetime.now()
     print('Tiempo final', end_time)

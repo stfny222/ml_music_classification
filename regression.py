@@ -39,8 +39,8 @@ def run(data, headers_feature):
     # Obtener el modelo de clasificacion
     lr_model = lr.fit(train_data)
 
-    print("Coeficientes: " + str(lr_model.coefficients))
-    print("Intercepto: " + str(lr_model.intercept))
+    print("Coeficientes: " + str(lr_model.coefficientMatrix))
+    print("Intercepto: " + str(lr_model.interceptVector))
 
     data_to_validate = lr_model.transform(test_data)
 
