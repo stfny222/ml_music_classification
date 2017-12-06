@@ -1,3 +1,4 @@
+import datetime
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.classification import LogisticRegression
 from pyspark.ml.evaluation import BinaryClassificationEvaluator
@@ -22,6 +23,10 @@ def prepare_dataset(data, headers_feature):
     return train_data,test_data
 
 def run(data, headers_feature):
+    print('-*-*-*- Iniciando la regresion logistica -*-*-*-')
+    start_time = datetime.datetime.now()
+    print('Tiempo inicial', start_time)
+
     # Obtener data de entrenamiento y pruebas
     train_data, test_data = prepare_dataset(data, headers_feature)
 
@@ -30,13 +35,12 @@ def run(data, headers_feature):
         maxIter=200, regParam=0.3, elasticNetParam=0.8,
         labelCol='genre', family='multinomial'
     )
-    # LogisticRegression: All labels are the same value and fitIntercept=true, so the coefficients will be zeros. Training is not needed.
 
     # Obtener el modelo de clasificacion
     lr_model = lr.fit(train_data)
 
-    # print("Coeficientes: " + str(lr_model.coefficients))
-    # print("Intercepto: " + str(lr_model.intercept))
+    print("Coeficientes: " + str(lr_model.coefficients))
+    print("Intercepto: " + str(lr_model.intercept))
 
     data_to_validate = lr_model.transform(test_data)
 
@@ -45,13 +49,15 @@ def run(data, headers_feature):
         rawPredictionCol='rawPrediction'
     )
     ROC = evaluator1.evaluate(data_to_validate)
-    print("{}:{}".format("areaUnderROC",ROC))
+    print("{}:{}".format("ROC",ROC))
 
     evaluator2 = BinaryClassificationEvaluator(
         labelCol='genre', metricName='areaUnderPR',
         rawPredictionCol='rawPrediction'
     )
     PR = evaluator2.evaluate(data_to_validate)
-    print("{}:{}".format("areaUnderPR",PR))
+    print("{}:{}".format("PR",PR))
 
-    return ROC, PR
+    end_time = datetime.datetime.now()
+    print('Tiempo final', end_time)
+    print('Tiempo transcurrido para regresion logistica', end_time - start_time)
