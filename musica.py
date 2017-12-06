@@ -1,4 +1,6 @@
 import sqlite3
+import datetime
+import regression
 from pyspark import SparkConf, SparkContext
 from pyspark.sql import SparkSession
 from pyspark.ml.feature import VectorAssembler
@@ -30,21 +32,21 @@ def get_genre(genres, genre):
             return g[0]
     return -1
 
-def tfidf(tf, n, df):
+def tfidf(c, tf, n, word):
+    df = len(c.execute(
+        'SELECT * FROM lyrics WHERE word=:word',
+        {'word': word}
+    ).fetchall())
     return tf * log(n / df)
 
 # Funcion que carga la data en un dataframe
 def load_dataset(c, spark, genres):
-    # sacar data  y guardarlo en arreglos / el fetchall es para jalar toda la lista
-    # songs = c.execute("SELECT mxm_tid, genre FROM songs").fetchall()
-    # words_table = c.execute("SELECT word FROM words").fetchall()
-    # lyrics = c.execute("SELECT track_id, mxm_tid, word, count, is_test FROM lyrics").fetchall()
-
-    # Guardar las cabeceras correspondientes a los campos
     headers = ['mxm_tid']
     for word in c.execute('SELECT word FROM words'):
         headers.append(word[0])
     headers.append('genre')
+
+    n = len(c.execute('SELECT * FROM songs').fetchall())
 
     data = []
     for song in c.execute('SELECT mxm_tid, genre FROM songs'):
@@ -52,19 +54,26 @@ def load_dataset(c, spark, genres):
         row.append(song[0])
         for i in range(1, len(headers) - 1):
             count = c.execute(
-                'SELECT count from lyrics where mxm_tid=:song AND word=:word',
+                'SELECT count FROM lyrics WHERE mxm_tid=:song AND word=:word',
                 {'song': song[0], 'word': headers[i]}
             ).fetchone()
             if not count:
                 row.append(0)
             else:
-                row.append(count[0])
+                row.append(tfidf(c, count[0], n, headers[i]))
         row.append(get_genre(genres, song[1]))
         data.append(row)
 
-    return spark.createDataFrame(data, headers)
+    headers_feature = []
+    for word in headers[1:len(headers)-1]:
+        headers_feature.append(word.replace('`', ''))
+
+    return spark.createDataFrame(data, headers), headers_feature
 
 def main ():
+    start_time = datetime.datetime.now()
+    print('Tiempo inicial', start_time)
+
     #Iniciar Spark
     sc = init_spark()
     spark = SparkSession(sc)
@@ -76,7 +85,14 @@ def main ():
     genres = load_genres(c)
 
     # Cargar la data a un dataframe
-    data = load_dataset(c, spark, genres)
+    data, headers_feature = load_dataset(c, spark, genres)
+
+    # Correr la clasificacion
+    regression.run(data, headers_feature)
+
+    end_time = datetime.datetime.now()
+    print('Tiempo final', end_time)
+    print('Tiempo total transcurrido', end_time - start_time)
 
 if __name__ == '__main__' :
     main()
